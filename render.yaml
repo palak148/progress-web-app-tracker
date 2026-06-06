@@ -56,11 +56,10 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
 
-  # React frontend (static)
+  # React frontend (static) — static sites have no plan field (always free CDN)
   - type: web
     name: prep-tracker-web
     runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
