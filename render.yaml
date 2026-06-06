@@ -1,0 +1,76 @@
+# Render.com Blueprint — deploy Prep Tracker to the cloud (free tier)
+# Docs: https://render.com/docs/blueprint-spec
+
+databases:
+  - name: prep-tracker-db
+    plan: free
+    databaseName: prep_tracker
+    user: prep
+
+services:
+  # Spring Boot API
+  - type: web
+    name: prep-tracker-api
+    runtime: docker
+    plan: free
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    healthCheckPath: /api/auth/google-url
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: postgres
+      - key: DB_HOST
+        fromDatabase:
+          name: prep-tracker-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: prep-tracker-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: prep-tracker-db
+          property: database
+      - key: DATABASE_USERNAME
+        fromDatabase:
+          name: prep-tracker-db
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: prep-tracker-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: prep-tracker-web
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: CORS_ORIGINS
+        fromService:
+          type: web
+          name: prep-tracker-web
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+  # React frontend (static)
+  - type: web
+    name: prep-tracker-web
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: prep-tracker-api
+          envVarKey: RENDER_EXTERNAL_URL
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
